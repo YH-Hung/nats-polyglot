@@ -12,4 +12,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class GirlsStreamConfig {
     private String streamName;
     private String consumerName;
+    private String subjectBase;
 }
