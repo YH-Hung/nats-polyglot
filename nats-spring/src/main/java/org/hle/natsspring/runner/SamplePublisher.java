@@ -31,6 +31,7 @@ public class SamplePublisher implements CommandLineRunner {
 
         log.info("Start to publish girls messages");
 
+        // Add unique Nats-Msg-Id (String) header for deduplication in PublishOptions
         js.publish("%s.top".formatted(streamConfig.getSubjectBase()), "wan @ %tc".formatted(System.currentTimeMillis()).getBytes());
         js.publish("%s.top".formatted(streamConfig.getSubjectBase()), "chi han @ %tc".formatted(System.currentTimeMillis()).getBytes());
         js.publish(NatsMessage.builder()

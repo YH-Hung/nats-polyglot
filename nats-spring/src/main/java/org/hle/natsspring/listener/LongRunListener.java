@@ -71,6 +71,8 @@ public class LongRunListener implements CommandLineRunner, ApplicationListener<C
             Message msg = iter.next();
             String payload = new String(msg.getData(), StandardCharsets.UTF_8);
             log.info("Get message from subscribe stream: {}", payload);
+
+            // Use ackSync if you want to ensure server is received the ack. (by throw timeout exception)
             msg.ack();
         }
 
