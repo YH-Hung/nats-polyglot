@@ -6,6 +6,7 @@ import org.hle.natsspring.config.prop.GirlsStreamConfig;
 import org.hle.natsspring.util.NatsUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -16,6 +17,7 @@ import java.time.Duration;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(prefix = "nats.subscriber", name = "type", havingValue = "iterator")
 public class LongRunListener implements CommandLineRunner, ApplicationListener<ContextClosedEvent> {
 
     private final Connection nc;
