@@ -29,9 +29,10 @@ public class SimplifiedListener implements CommandLineRunner, ApplicationListene
 
     @Override
     public void run(String... args) throws Exception {
-        // MessageConsumer is more succinct, but unable to hook into spring graceful shutdown management.
         JetStream js = nc.jetStream();
         ConsumerContext consumerContext = js.getConsumerContext(streamConfig.getStreamName(), streamConfig.getConsumerName());
+
+        // TODO: Test with Executor
         mc = consumerContext.consume(msg -> {
             String payload = new String(msg.getData(), StandardCharsets.UTF_8);
             log.info("Get message from subscribe stream: {}", payload);
