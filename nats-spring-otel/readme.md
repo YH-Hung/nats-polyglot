@@ -1,0 +1,7 @@
+# Setup
+
+```
+NATS_GIRLS_STREAM_NAME=my-girls
+NATS_GIRLS_CONSUMER_NAME=girl_consumer
+NATS_GIRLS_SUBJECT_BASE=girls
+```
