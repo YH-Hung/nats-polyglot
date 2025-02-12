@@ -2,6 +2,8 @@ package org.hle.sub.listener;
 
 import io.micrometer.tracing.Tracer;
 import io.nats.client.*;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import lombok.extern.slf4j.Slf4j;
 import org.hle.sub.config.prop.GirlsStreamConfig;
 import org.hle.sub.util.NatsUtil;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 
 @Slf4j
 @Component
@@ -23,14 +26,16 @@ public class LongRunListener implements CommandLineRunner, ApplicationListener<C
     private final GirlsStreamConfig streamConfig;
     private final ThreadPoolTaskExecutor executor;
     private final Tracer tracer;
+    private final OpenTelemetry openTelemetry;
 
     private volatile boolean isCancelled = false;
 
-    public LongRunListener(Connection nc, GirlsStreamConfig streamConfig, @Qualifier("threadPoolTaskExecutor") ThreadPoolTaskExecutor executor, Tracer tracer) {
+    public LongRunListener(Connection nc, GirlsStreamConfig streamConfig, @Qualifier("threadPoolTaskExecutor") ThreadPoolTaskExecutor executor, Tracer tracer, OpenTelemetry openTelemetry) {
         this.nc = nc;
         this.streamConfig = streamConfig;
         this.executor = executor;
         this.tracer = tracer;
+        this.openTelemetry = openTelemetry;
     }
 
     @Override
@@ -77,34 +82,40 @@ public class LongRunListener implements CommandLineRunner, ApplicationListener<C
         while (iter.hasNext()) {
             Message msg = iter.next();
             try {
-                var headers = msg.getHeaders();
-                var ctx = tracer.traceContextBuilder()
-                        .traceId(headers.get("OTEL-TRACE-ID").get(0))
-                        .spanId(headers.get("OTEL-SPAN-ID").get(0))
-                        .build();
+                var parentContext = openTelemetry.getPropagators()
+                        .getTextMapPropagator()
+                        .extract(io.opentelemetry.context.Context.root(), msg, getter);
 
-                var span = tracer.spanBuilder().setParent(ctx).name("nats polling").start();
+                try (var scope = parentContext.makeCurrent()) {
+                    var span = tracer.nextSpan().name("pull nats message").start();
+                    try (var ws = tracer.withSpan(span)) {
+                        String payload = new String(msg.getData(), StandardCharsets.UTF_8);
+                        log.info("Get message from subscribe stream: {}", payload);
 
-                try (var ws = tracer.withSpan(span)) {
-                    String payload = new String(msg.getData(), StandardCharsets.UTF_8);
-                    log.info("Get message from subscribe stream: {}", payload);
-
-                    // Use ackSync if you want to ensure server is received the ack. (by throw timeout exception)
-                    msg.ack();
-                } finally {
-                    span.end();
+                        // Use ackSync if you want to ensure server is received the ack. (by throw timeout exception)
+                        msg.ack();
+                    } finally {
+                        span.end();
+                    }
                 }
-
             } catch (Exception e) {
                 log.error("Error message", e);
                 msg.ack();
             }
-
-
         }
 
         log.trace("Polling batch complete.");
     }
 
+    private static final TextMapGetter<Message> getter = new TextMapGetter<>() {
+        @Override
+        public Iterable<String> keys(Message message) {
+            return message.hasHeaders() ? message.getHeaders().keySet() : Collections.emptyList();
+        }
 
+        @Override
+        public String get(Message message, String key) {
+            return message.hasHeaders() ? message.getHeaders().getFirst(key) : null;
+        }
+    };
 }
