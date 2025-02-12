@@ -1,11 +1,9 @@
 package org.hle.sub.listener;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.tracing.Tracer;
 import io.nats.client.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hle.sub.config.prop.GirlsStreamConfig;
-import org.hle.sub.dto.MessageWithSpan;
 import org.hle.sub.util.NatsUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
@@ -13,9 +11,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-import org.springframework.util.SerializationUtils;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -27,7 +23,6 @@ public class LongRunListener implements CommandLineRunner, ApplicationListener<C
     private final GirlsStreamConfig streamConfig;
     private final ThreadPoolTaskExecutor executor;
     private final Tracer tracer;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private volatile boolean isCancelled = false;
 
@@ -82,16 +77,16 @@ public class LongRunListener implements CommandLineRunner, ApplicationListener<C
         while (iter.hasNext()) {
             Message msg = iter.next();
             try {
-                MessageWithSpan messageWithSpan = objectMapper.readValue(msg.getData(), MessageWithSpan.class);
+                var headers = msg.getHeaders();
                 var ctx = tracer.traceContextBuilder()
-                        .traceId(messageWithSpan.getTraceId())
-                        .spanId(messageWithSpan.getSpanId())
+                        .traceId(headers.get("OTEL-TRACE-ID").get(0))
+                        .spanId(headers.get("OTEL-SPAN-ID").get(0))
                         .build();
 
                 var span = tracer.spanBuilder().setParent(ctx).name("nats polling").start();
 
                 try (var ws = tracer.withSpan(span)) {
-                    String payload = messageWithSpan.getMessage();
+                    String payload = new String(msg.getData(), StandardCharsets.UTF_8);
                     log.info("Get message from subscribe stream: {}", payload);
 
                     // Use ackSync if you want to ensure server is received the ack. (by throw timeout exception)
