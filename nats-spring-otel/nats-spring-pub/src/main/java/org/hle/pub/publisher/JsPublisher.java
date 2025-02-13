@@ -34,18 +34,36 @@ public class JsPublisher {
 
     public PublishAck publish(String nextSubject, String rawMessage) throws IOException, JetStreamApiException {
         JetStream js = nc.jetStream();
-        log.info("Start to publish girls messages");
 
         var span = tracer.currentSpan();    // or nextSpan -> try with span if current active context is empty
         var headers = new Headers();
+
+        String subject = "%s.%s".formatted(streamConfig.getSubjectBase(), nextSubject);
         if (span != null) {
             openTelemetry.getPropagators().getTextMapPropagator().inject(
                     io.opentelemetry.context.Context.current(), headers, setter
             );
+
+            return publish(js, subject, headers, rawMessage);
+        } else {
+            var newSpan = tracer.nextSpan().name("nats-publish").start();
+            try (var ws = tracer.withSpan(newSpan)) {
+                openTelemetry.getPropagators().getTextMapPropagator().inject(
+                        io.opentelemetry.context.Context.current(), headers, setter
+                );
+
+                return publish(js, subject, headers, rawMessage);
+            } finally {
+                newSpan.end();
+            }
         }
 
+    }
+
+    private static PublishAck publish(JetStream js, String subject, Headers headers, String rawMessage) throws JetStreamApiException, IOException {
+        log.info("Start to publish girls messages");
         var ack = js.publish(NatsMessage.builder()
-                .subject("%s.%s".formatted(streamConfig.getSubjectBase(), nextSubject))
+                .subject(subject)
                 .headers(headers)
                 .data(rawMessage.getBytes(StandardCharsets.UTF_8))
                 .build());
@@ -53,19 +71,6 @@ public class JsPublisher {
         log.info("Girl message published");
 
         return ack;
-
-
-    }
-
-    private static Headers genTraceHeaders(Tracer tracer) {
-        var headers = new Headers();
-        var ctx = tracer.currentTraceContext().context();
-        if (ctx != null) {
-            headers.add("OTEL-TRACE-ID", ctx.traceId());
-            headers.add("OTEL-SPAN-ID", ctx.spanId());
-        }
-
-        return headers;
     }
 
     private static final TextMapSetter<Headers> setter = (headers, key, value) -> {
