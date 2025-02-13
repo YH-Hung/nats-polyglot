@@ -4,6 +4,7 @@ import io.nats.client.Connection;
 import io.nats.client.ConsumerContext;
 import io.nats.client.JetStream;
 import io.nats.client.MessageConsumer;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hle.natsspring.config.prop.GirlsStreamConfig;
 import org.springframework.boot.CommandLineRunner;
@@ -32,7 +33,7 @@ public class SimplifiedListener implements CommandLineRunner, ApplicationListene
         JetStream js = nc.jetStream();
         ConsumerContext consumerContext = js.getConsumerContext(streamConfig.getStreamName(), streamConfig.getConsumerName());
 
-        // TODO: Test with Executor
+        // Without executor option, therefore unable to hook into graceful shutdown
         mc = consumerContext.consume(msg -> {
             String payload = new String(msg.getData(), StandardCharsets.UTF_8);
             log.info("Get message from subscribe stream: {}", payload);
@@ -42,8 +43,10 @@ public class SimplifiedListener implements CommandLineRunner, ApplicationListene
         });
     }
 
+    @SneakyThrows
     @Override
     public void onApplicationEvent(ContextClosedEvent event) {
+        Thread.sleep(3000);
         mc.stop();
         log.warn("Message consumer stopped");
     }
