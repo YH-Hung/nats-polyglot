@@ -17,7 +17,7 @@ import java.time.Duration;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "nats.subscriber", name = "type", havingValue = "iterator")
+@ConditionalOnProperty(prefix = "msg.listener", name = "type", havingValue = "nats-iterator")
 public class LongRunListener implements CommandLineRunner, ApplicationListener<ContextClosedEvent> {
 
     private final Connection nc;

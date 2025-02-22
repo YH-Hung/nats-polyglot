@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "nats.subscriber", name = "type", havingValue = "mc")
+@ConditionalOnProperty(prefix = "msg.listener", name = "type", havingValue = "nats-mc")
 public class SimplifiedListener implements CommandLineRunner, ApplicationListener<ContextClosedEvent> {
     private final Connection nc;
     private final GirlsStreamConfig streamConfig;

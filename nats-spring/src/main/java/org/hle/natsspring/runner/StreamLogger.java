@@ -4,10 +4,12 @@ import io.nats.client.Connection;
 import lombok.extern.slf4j.Slf4j;
 import org.hle.natsspring.config.prop.GirlsStreamConfig;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(prefix = "nats.connection", name = "enable", havingValue = "Y")
 public class StreamLogger implements CommandLineRunner {
 
     private final Connection nc;
