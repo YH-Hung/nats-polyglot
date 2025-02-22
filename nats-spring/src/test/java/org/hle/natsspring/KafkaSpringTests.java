@@ -39,6 +39,7 @@ class KafkaSpringTests {
     @SneakyThrows
     @Test
     void message_consumed() {
+        kafkaTemplate.setObservationEnabled(true);
         kafkaTemplate.send("my-girls", "Rey lin go go");
         Thread.sleep(5_000);
     }
