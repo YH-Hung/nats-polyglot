@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings("resource")
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = {"spring.profiles.active=nats"})
 class NatsSpringApplicationTests {
 
     @Container
