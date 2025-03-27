@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "nats.nc-publisher", name = "enable", havingValue = "Y")
+@ConditionalOnProperty(prefix = "nats.nc-publisher", name = "enable", havingValue = "NC")
 public class NoContextRunner implements CommandLineRunner {
 
     private final JsPublisher publisher;
