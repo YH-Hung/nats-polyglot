@@ -10,8 +10,11 @@ import lombok.SneakyThrows;
 import org.hle.natsspring.config.prop.GirlsStreamConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -19,12 +22,16 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @SuppressWarnings("resource")
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(properties = {"spring.profiles.active=nats"})
 class NatsSpringApplicationTests {
 
@@ -68,14 +75,16 @@ class NatsSpringApplicationTests {
 
     @SneakyThrows
     @Test
-    void contextLoads() {
+    void contextLoads(CapturedOutput output) {
         var js = nc.jetStream();
         js.publish(NatsMessage.builder()
                 .subject("%s.normal".formatted(streamConfig.getSubjectBase()))
                 .data("Zi Lun @ %tc".formatted(System.currentTimeMillis()), StandardCharsets.UTF_8)
                 .build());
 
-        Thread.sleep(5_000);
+        Awaitility.await().untilAsserted(() -> {
+            assertThat(output).contains("Get message from subscribe stream: Zi Lun");
+        });
     }
 
 
