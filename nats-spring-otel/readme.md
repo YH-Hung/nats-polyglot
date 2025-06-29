@@ -26,3 +26,9 @@ CREATE TABLE girls_rating (
 ```
 #Sun Jun 29 17:04:57 CST 2025\ntraceparent=00-2d85abbc9f992811fdd731501a6a472c-543f30fb6d58bf89-01\n
 ```
+
+# Docker compose
+
+```bash
+docker compose down --volumes
+```
